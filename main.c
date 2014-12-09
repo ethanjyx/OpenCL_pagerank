@@ -6,11 +6,7 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
-<<<<<<< HEAD
-#define NUM_VALUES 3
-=======
-#define NUM_VALUES 1024
->>>>>>> parent of ae77467... Executing square failed
+#define NUM_VALUES 4
 // A utility function that checks that our kernel execution performs the
 // requested work over the entire range of data.
 
@@ -56,6 +52,7 @@ int main (int argc, const char * argv[]) {
     for (i = 0; i < NUM_VALUES; i++) {
         test_in[i] = (cl_float)i;
     }
+    
     // Once the computation using CL is done, will have to read the results
     // back into our application's memory space. Allocate some space for that.
     float* test_out = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
@@ -67,11 +64,11 @@ int main (int argc, const char * argv[]) {
     // created above. This tells OpenCL to copy the data into its memory
     // space before it executes the kernel. // 3
     void* mem_in = gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
-                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+                              CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
     // The output array is not initalized; we're going to fill it up when
     // we execute our kernel. // 4
     void* mem_out =
-    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_WRITE_ONLY);
+    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_READ_WRITE);
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
@@ -82,8 +79,6 @@ int main (int argc, const char * argv[]) {
         gcl_get_kernel_block_workgroup_info(square_kernel,
                                             CL_KERNEL_WORK_GROUP_SIZE,
                                             sizeof(wgs), &wgs, NULL);
-        
-        printf("%d", wgs);
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
@@ -95,7 +90,7 @@ int main (int argc, const char * argv[]) {
             {NUM_VALUES, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {1, 0, 0} // The local size of each workgroup. This
+            {wgs, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -108,7 +103,12 @@ int main (int argc, const char * argv[]) {
         // kernel parameters. Note that we case the 'void*' here to the
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
-        square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
+        
+//        for (int i = 0; i < 2; ++i) {
+            square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
+            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
+//        }
+        
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
         // computed by the kernel and copies it over to the
