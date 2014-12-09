@@ -6,7 +6,7 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
-#define NUM_VALUES 4
+#define NUM_VALUES 3
 // A utility function that checks that our kernel execution performs the
 // requested work over the entire range of data.
 
@@ -78,6 +78,8 @@ int main (int argc, const char * argv[]) {
         gcl_get_kernel_block_workgroup_info(square_kernel,
                                             CL_KERNEL_WORK_GROUP_SIZE,
                                             sizeof(wgs), &wgs, NULL);
+        
+        printf("%d", wgs);
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
@@ -89,7 +91,7 @@ int main (int argc, const char * argv[]) {
             {NUM_VALUES, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {wgs, 0, 0} // The local size of each workgroup. This
+            {1, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
