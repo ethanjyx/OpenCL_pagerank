@@ -90,7 +90,7 @@ int main (int argc, const char * argv[]) {
             {NUM_VALUES, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {wgs, 0, 0} // The local size of each workgroup. This
+            {1, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -104,10 +104,10 @@ int main (int argc, const char * argv[]) {
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
         
-//        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < 2; ++i) {
             square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
             gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
-//        }
+        }
         
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
