@@ -6,7 +6,11 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
+<<<<<<< HEAD
 #define NUM_VALUES 3
+=======
+#define NUM_VALUES 1024
+>>>>>>> parent of ae77467... Executing square failed
 // A utility function that checks that our kernel execution performs the
 // requested work over the entire range of data.
 
