@@ -52,7 +52,6 @@ int main (int argc, const char * argv[]) {
     for (i = 0; i < NUM_VALUES; i++) {
         test_in[i] = (cl_float)i;
     }
-    
     // Once the computation using CL is done, will have to read the results
     // back into our application's memory space. Allocate some space for that.
     float* test_out = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
@@ -64,11 +63,11 @@ int main (int argc, const char * argv[]) {
     // created above. This tells OpenCL to copy the data into its memory
     // space before it executes the kernel. // 3
     void* mem_in = gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
-                              CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     // The output array is not initalized; we're going to fill it up when
     // we execute our kernel. // 4
     void* mem_out =
-    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_READ_WRITE);
+    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_WRITE_ONLY);
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
@@ -103,12 +102,7 @@ int main (int argc, const char * argv[]) {
         // kernel parameters. Note that we case the 'void*' here to the
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
-        
-//        for (int i = 0; i < 2; ++i) {
-            square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
-            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
-//        }
-        
+        square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
         // computed by the kernel and copies it over to the
