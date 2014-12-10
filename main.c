@@ -8,6 +8,8 @@
 // Hard-coded number of values to test, for convenience.
 
 int main (int argc, const char * argv[]) {
+    int k = 10; // number of iterations
+    
     int i;
     FILE *data;
     data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
@@ -34,12 +36,12 @@ int main (int argc, const char * argv[]) {
         }
     }
     fclose(data);
-
+    
 //  test reading is correct
-    printf("%d\n", numOutLinks[6004]);
-    for (int i = 0; i < numEdges; ++i) {
-        printf("%d %d\n", inlinks[i], outlinks[i]);
-    }
+//    printf("%d\n", numOutLinks[6004]);
+//    for (int i = 0; i < numEdges; ++i) {
+//        printf("%d %d\n", inlinks[i], outlinks[i]);
+//    }
     
     char name[128];
     // First, try to obtain a dispatch queue that can send work to the
@@ -58,6 +60,19 @@ int main (int argc, const char * argv[]) {
     clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
     fprintf(stdout, "Created a dispatch queue using the %s\n", name);
     
+    
+    float* oldpr = (float*)malloc(sizeof(cl_float) * numNodes);
+    float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
+    float initPR = 1 / (float)numNodes;
+    for (int i = 0; i < numNodes; ++i) {
+        oldpr[i] = (cl_float)initPR;
+        newpr[i] = 0;
+    }
+    
+    void* gcl_oldpr = gcl_malloc(sizeof(cl_float) * numNodes, oldpr,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    void* gcl_newpr = gcl_malloc(sizeof(cl_float) * numNodes, newpr,
+                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     void* gcl_inlinks = gcl_malloc(sizeof(cl_int) * numEdges, inlinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     void* gcl_outlinks = gcl_malloc(sizeof(cl_int) * numEdges, outlinks,
@@ -65,10 +80,6 @@ int main (int argc, const char * argv[]) {
     void* gcl_numOutlinks = gcl_malloc(sizeof(cl_int) * numNodes, numOutLinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     
-    // The output array is not initalized; we're going to fill it up when
-    // we execute our kernel. // 4
-    void* mem_out =
-    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_READ_WRITE);
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
@@ -87,7 +98,7 @@ int main (int argc, const char * argv[]) {
             {0, 0, 0}, // The offset in each dimension. To specify
             // that all the data is processed, this is 0
             // in the test case. // 7
-            {NUM_VALUES, 0, 0}, // The global range—this is how many items
+            {numEdges, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
             {NULL, 0, 0} // The local size of each workgroup. This
@@ -104,7 +115,7 @@ int main (int argc, const char * argv[]) {
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
         
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < k; ++i) {
             square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
             gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
         }
@@ -119,13 +130,17 @@ int main (int argc, const char * argv[]) {
     free(numOutLinks);
     free(inlinks);
     free(outlinks);
+    free(oldpr);
+    free(newpr);
     
     // Don't forget to free up the CL device's memory when you're done. // 10
-    gcl_free(mem_in);
-    gcl_free(mem_out);
+    gcl_free(gcl_newpr);
+    gcl_free(gcl_oldpr);
+    gcl_free(gcl_inlinks);
+    gcl_free(gcl_outlinks);
+    gcl_free(gcl_numOutlinks);
+    
     // And the same goes for system memory, as usual.
-    free(test_in);
-    free(test_out);
     // Finally, release your queue just as you would any GCD queue. // 11
     dispatch_release(queue);
 }
