@@ -6,26 +6,6 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
-#define NUM_VALUES 4
-// A utility function that checks that our kernel execution performs the
-// requested work over the entire range of data.
-
-static int validate(cl_float* input, cl_float* output) {
-    int i;
-    for (i = 0; i < NUM_VALUES; i++) {
-        // The kernel was supposed to square each value.
-        if ( output[i] != (input[i] * input[i]) ) {
-            fprintf(stdout,
-                    "Error: Element %d did not match expected output.\n", i);
-            fprintf(stdout,
-                    " Saw %1.4f, expected %1.4f\n", output[i],
-                    input[i] * input[i]);
-            fflush(stdout);
-            return 0;
-        }
-    }
-    return 1;
-}
 
 int main (int argc, const char * argv[]) {
     int i;
@@ -78,15 +58,13 @@ int main (int argc, const char * argv[]) {
     clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
     fprintf(stdout, "Created a dispatch queue using the %s\n", name);
     
-    // The test kernel takes two parameters: an input float array and an
-    // output float array. We can't send the application's buffers above, since
-    // our CL device operates on its own memory space. Therefore, we allocate
-    // OpenCL memory for doing the work. Notice that for the input array,
-    // we specify CL_MEM_COPY_HOST_PTR and provide the fake input data we
-    // created above. This tells OpenCL to copy the data into its memory
-    // space before it executes the kernel. // 3
-    void* mem_in = gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
-                              CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+    void* gcl_inlinks = gcl_malloc(sizeof(cl_int) * numEdges, inlinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    void* gcl_outlinks = gcl_malloc(sizeof(cl_int) * numEdges, outlinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    void* gcl_numOutlinks = gcl_malloc(sizeof(cl_int) * numNodes, numOutLinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    
     // The output array is not initalized; we're going to fill it up when
     // we execute our kernel. // 4
     void* mem_out =
