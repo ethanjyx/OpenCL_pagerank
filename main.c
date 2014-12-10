@@ -26,7 +26,39 @@ static int validate(cl_float* input, cl_float* output) {
     }
     return 1;
 }
+
 int main (int argc, const char * argv[]) {
+    FILE *data;
+    data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
+    if (!data) {
+        fprintf(stderr, "cannot open datafile\n");
+        return 1;
+    }
+    
+    int numNodes, numEdges;
+    fscanf(data, "%d %d", &numNodes, &numEdges);
+    
+    int* numOutLinks = (int*)malloc(sizeof(int) * numNodes);
+    int* inlinks = (int*)malloc(sizeof(int) * numEdges);
+    int* outlinks = (int*)malloc(sizeof(int) * numEdges);
+    int in, out;
+    for (int i = 0; i < numEdges; ++i) {
+        if(fscanf(data, "%d %d", &in, &out) != EOF) {
+            // in and out starts from 1
+            // change to let them start from 0
+            --in; --out;
+            inlinks[i] = in;
+            outlinks[i] = out;
+            ++numOutLinks[in];
+        }
+    }
+
+//    test reading is correct
+//    printf("%d\n", numOutLinks[6004]);
+//    for (int i = 0; i < numEdges; ++i) {
+//        printf("%d %d\n", inlinks[i], outlinks[i]);
+//    }
+    
     int i;
     char name[128];
     // First, try to obtain a dispatch queue that can send work to the
@@ -75,10 +107,10 @@ int main (int argc, const char * argv[]) {
         // Although we could pass NULL as the workgroup size, which would tell
         // OpenCL to pick the one it thinks is best, we can also ask
         // OpenCL for the suggested size, and pass it ourselves.
-        size_t wgs;
-        gcl_get_kernel_block_workgroup_info(square_kernel,
-                                            CL_KERNEL_WORK_GROUP_SIZE,
-                                            sizeof(wgs), &wgs, NULL);
+//        size_t wgs;
+//        gcl_get_kernel_block_workgroup_info(square_kernel,
+//                                            CL_KERNEL_WORK_GROUP_SIZE,
+//                                            sizeof(wgs), &wgs, NULL);
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
@@ -90,7 +122,7 @@ int main (int argc, const char * argv[]) {
             {NUM_VALUES, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {1, 0, 0} // The local size of each workgroup. This
+            {NULL, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -119,6 +151,12 @@ int main (int argc, const char * argv[]) {
     if ( validate(test_in, test_out)) {
         fprintf(stdout, "All values were properly squared.\n");
     }
+    
+    free(numOutLinks);
+    free(inlinks);
+    free(outlinks);
+    
+    
     // Don't forget to free up the CL device's memory when you're done. // 10
     gcl_free(mem_in);
     gcl_free(mem_out);
