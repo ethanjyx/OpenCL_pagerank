@@ -28,6 +28,7 @@ static int validate(cl_float* input, cl_float* output) {
 }
 
 int main (int argc, const char * argv[]) {
+    int i;
     FILE *data;
     data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
     if (!data) {
@@ -38,28 +39,28 @@ int main (int argc, const char * argv[]) {
     int numNodes, numEdges;
     fscanf(data, "%d %d", &numNodes, &numEdges);
     
-    int* numOutLinks = (int*)malloc(sizeof(int) * numNodes);
-    int* inlinks = (int*)malloc(sizeof(int) * numEdges);
-    int* outlinks = (int*)malloc(sizeof(int) * numEdges);
+    int* numOutLinks = (int*)malloc(sizeof(cl_int) * numNodes);
+    int* inlinks = (int*)malloc(sizeof(cl_int) * numEdges);
+    int* outlinks = (int*)malloc(sizeof(cl_int) * numEdges);
     int in, out;
     for (int i = 0; i < numEdges; ++i) {
         if(fscanf(data, "%d %d", &in, &out) != EOF) {
             // in and out starts from 1
             // change to let them start from 0
             --in; --out;
-            inlinks[i] = in;
-            outlinks[i] = out;
+            inlinks[i] = (cl_int)in;
+            outlinks[i] = (cl_int)out;
             ++numOutLinks[in];
         }
     }
+    fclose(data);
 
-//    test reading is correct
-//    printf("%d\n", numOutLinks[6004]);
-//    for (int i = 0; i < numEdges; ++i) {
-//        printf("%d %d\n", inlinks[i], outlinks[i]);
-//    }
+//  test reading is correct
+    printf("%d\n", numOutLinks[6004]);
+    for (int i = 0; i < numEdges; ++i) {
+        printf("%d %d\n", inlinks[i], outlinks[i]);
+    }
     
-    int i;
     char name[128];
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
@@ -76,18 +77,7 @@ int main (int argc, const char * argv[]) {
     cl_device_id gpu = gcl_get_device_id_with_dispatch_queue(queue);
     clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
     fprintf(stdout, "Created a dispatch queue using the %s\n", name);
-    // Here we hardcode some test data.
-    // Normally, when this application is running for real, data would come from
-    // some REAL source, such as a camera, a sensor, or some compiled collection
-    // of statistics—it just depends on the problem you want to solve.
-    float* test_in = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
-    for (i = 0; i < NUM_VALUES; i++) {
-        test_in[i] = (cl_float)i;
-    }
     
-    // Once the computation using CL is done, will have to read the results
-    // back into our application's memory space. Allocate some space for that.
-    float* test_out = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
     // The test kernel takes two parameters: an input float array and an
     // output float array. We can't send the application's buffers above, since
     // our CL device operates on its own memory space. Therefore, we allocate
@@ -147,15 +137,10 @@ int main (int argc, const char * argv[]) {
         // application's memory space. // 9
         gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
-    // Check to see if the kernel did what it was supposed to:
-    if ( validate(test_in, test_out)) {
-        fprintf(stdout, "All values were properly squared.\n");
-    }
     
     free(numOutLinks);
     free(inlinks);
     free(outlinks);
-    
     
     // Don't forget to free up the CL device's memory when you're done. // 10
     gcl_free(mem_in);
