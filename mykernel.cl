@@ -10,7 +10,8 @@ kernel void square(
 {
     size_t i = get_global_id(0);
     
-    output[i] = input[i];
+    if(i > 4)
+        output[0] = input[i];
 }
 // 1
 // 2

@@ -51,7 +51,8 @@ int main (int argc, const char * argv[]) {
     // The output array is not initalized; we're going to fill it up when
     // we execute our kernel. // 4
     void* mem_out =
-    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_WRITE_ONLY);
+    gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
+               CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
@@ -93,7 +94,9 @@ int main (int argc, const char * argv[]) {
         // application's memory space. // 9
         gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
+    printf("%f\n", test_out[0]);
     printf("%f\n", test_out[1]);
+    printf("%f\n", test_out[2]);
     
     
     // Don't forget to free up the CL device's memory when you're done. // 10
