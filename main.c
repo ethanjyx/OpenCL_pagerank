@@ -6,26 +6,10 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
-#define NUM_VALUES 1024
+#define NUM_VALUES 6
 // A utility function that checks that our kernel execution performs the
 // requested work over the entire range of data.
 
-static int validate(cl_float* input, cl_float* output) {
-    int i;
-    for (i = 0; i < NUM_VALUES; i++) {
-        // The kernel was supposed to square each value.
-        if ( output[i] != (input[i] * input[i]) ) {
-            fprintf(stdout,
-                    "Error: Element %d did not match expected output.\n", i);
-            fprintf(stdout,
-                    " Saw %1.4f, expected %1.4f\n", output[i],
-                    input[i] * input[i]);
-            fflush(stdout);
-            return 0;
-        }
-    }
-    return 1;
-}
 int main (int argc, const char * argv[]) {
     int i;
     char name[128];
@@ -89,7 +73,7 @@ int main (int argc, const char * argv[]) {
             {NUM_VALUES, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {wgs, 0, 0} // The local size of each workgroup. This
+            {NULL, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -109,10 +93,9 @@ int main (int argc, const char * argv[]) {
         // application's memory space. // 9
         gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
-    // Check to see if the kernel did what it was supposed to:
-    if ( validate(test_in, test_out)) {
-        fprintf(stdout, "All values were properly squared.\n");
-    }
+    printf("%f\n", test_out[1]);
+    
+    
     // Don't forget to free up the CL device's memory when you're done. // 10
     gcl_free(mem_in);
     gcl_free(mem_out);

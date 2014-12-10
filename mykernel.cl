@@ -9,7 +9,8 @@ kernel void square(
                    global float* output)
 {
     size_t i = get_global_id(0);
-    output[i] = input[i] * input[i];
+    
+    output[i] = input[i];
 }
 // 1
 // 2
