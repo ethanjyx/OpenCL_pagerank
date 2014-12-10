@@ -6,12 +6,41 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
-#define NUM_VALUES 6
-// A utility function that checks that our kernel execution performs the
-// requested work over the entire range of data.
 
 int main (int argc, const char * argv[]) {
     int i;
+    FILE *data;
+    data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
+    if (!data) {
+        fprintf(stderr, "cannot open datafile\n");
+        return 1;
+    }
+    
+    int numNodes, numEdges;
+    fscanf(data, "%d %d", &numNodes, &numEdges);
+    
+    int* numOutLinks = (int*)malloc(sizeof(cl_int) * numNodes);
+    int* inlinks = (int*)malloc(sizeof(cl_int) * numEdges);
+    int* outlinks = (int*)malloc(sizeof(cl_int) * numEdges);
+    int in, out;
+    for (int i = 0; i < numEdges; ++i) {
+        if(fscanf(data, "%d %d", &in, &out) != EOF) {
+            // in and out starts from 1
+            // change to let them start from 0
+            --in; --out;
+            inlinks[i] = (cl_int)in;
+            outlinks[i] = (cl_int)out;
+            ++numOutLinks[in];
+        }
+    }
+    fclose(data);
+
+//  test reading is correct
+    printf("%d\n", numOutLinks[6004]);
+    for (int i = 0; i < numEdges; ++i) {
+        printf("%d %d\n", inlinks[i], outlinks[i]);
+    }
+    
     char name[128];
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
@@ -28,41 +57,28 @@ int main (int argc, const char * argv[]) {
     cl_device_id gpu = gcl_get_device_id_with_dispatch_queue(queue);
     clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
     fprintf(stdout, "Created a dispatch queue using the %s\n", name);
-    // Here we hardcode some test data.
-    // Normally, when this application is running for real, data would come from
-    // some REAL source, such as a camera, a sensor, or some compiled collection
-    // of statistics—it just depends on the problem you want to solve.
-    float* test_in = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
-    for (i = 0; i < NUM_VALUES; i++) {
-        test_in[i] = (cl_float)i;
-    }
-    // Once the computation using CL is done, will have to read the results
-    // back into our application's memory space. Allocate some space for that.
-    float* test_out = (float*)malloc(sizeof(cl_float) * NUM_VALUES);
-    // The test kernel takes two parameters: an input float array and an
-    // output float array. We can't send the application's buffers above, since
-    // our CL device operates on its own memory space. Therefore, we allocate
-    // OpenCL memory for doing the work. Notice that for the input array,
-    // we specify CL_MEM_COPY_HOST_PTR and provide the fake input data we
-    // created above. This tells OpenCL to copy the data into its memory
-    // space before it executes the kernel. // 3
-    void* mem_in = gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
-                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    
+    void* gcl_inlinks = gcl_malloc(sizeof(cl_int) * numEdges, inlinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    void* gcl_outlinks = gcl_malloc(sizeof(cl_int) * numEdges, outlinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    void* gcl_numOutlinks = gcl_malloc(sizeof(cl_int) * numNodes, numOutLinks,
+                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    
     // The output array is not initalized; we're going to fill it up when
     // we execute our kernel. // 4
     void* mem_out =
-    gcl_malloc(sizeof(cl_float) * NUM_VALUES, test_in,
-               CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+    gcl_malloc(sizeof(cl_float) * NUM_VALUES, NULL, CL_MEM_READ_WRITE);
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
         // Although we could pass NULL as the workgroup size, which would tell
         // OpenCL to pick the one it thinks is best, we can also ask
         // OpenCL for the suggested size, and pass it ourselves.
-        size_t wgs;
-        gcl_get_kernel_block_workgroup_info(square_kernel,
-                                            CL_KERNEL_WORK_GROUP_SIZE,
-                                            sizeof(wgs), &wgs, NULL);
+//        size_t wgs;
+//        gcl_get_kernel_block_workgroup_info(square_kernel,
+//                                            CL_KERNEL_WORK_GROUP_SIZE,
+//                                            sizeof(wgs), &wgs, NULL);
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
@@ -87,17 +103,22 @@ int main (int argc, const char * argv[]) {
         // kernel parameters. Note that we case the 'void*' here to the
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
-        square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
+        
+        for (int i = 0; i < 2; ++i) {
+            square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
+            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
+        }
+        
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
         // computed by the kernel and copies it over to the
         // application's memory space. // 9
         gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
-    printf("%f\n", test_out[0]);
-    printf("%f\n", test_out[1]);
-    printf("%f\n", test_out[2]);
     
+    free(numOutLinks);
+    free(inlinks);
+    free(outlinks);
     
     // Don't forget to free up the CL device's memory when you're done. // 10
     gcl_free(mem_in);
