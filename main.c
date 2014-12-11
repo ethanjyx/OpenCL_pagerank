@@ -8,7 +8,8 @@
 // Hard-coded number of values to test, for convenience.
 
 int main (int argc, const char * argv[]) {
-    int k = 10; // number of iterations
+    int k = 1; // number of iterations
+    float d = 0.85; // damping factor
     
     int i;
     FILE *data;
@@ -60,13 +61,13 @@ int main (int argc, const char * argv[]) {
     clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
     fprintf(stdout, "Created a dispatch queue using the %s\n", name);
     
-    
     float* oldpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float initPR = 1 / (float)numNodes;
+    float constPart = (1 - d) / numNodes;
     for (int i = 0; i < numNodes; ++i) {
         oldpr[i] = (cl_float)initPR;
-        newpr[i] = 0;
+        newpr[i] = constPart;
     }
     
     void* gcl_oldpr = gcl_malloc(sizeof(cl_float) * numNodes, oldpr,
@@ -116,15 +117,15 @@ int main (int argc, const char * argv[]) {
         // kernel, is a 'cl_float' from the application's perspective. // 8
         
         for (int i = 0; i < k; ++i) {
-            square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
-            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
+            square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
+//            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
         }
         
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
         // computed by the kernel and copies it over to the
         // application's memory space. // 9
-        gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
+//        gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
     
     free(numOutLinks);
