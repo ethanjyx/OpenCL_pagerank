@@ -6,9 +6,13 @@
 // kernel block declaration. // 1
 #include "mykernel.cl.h"
 // Hard-coded number of values to test, for convenience.
+#include <time.h>
+
 
 int main (int argc, const char * argv[]) {
-    int k = 1; // number of iterations
+    clock_t t = clock();
+    
+    int k = 100; // number of iterations
     float d = 0.85; // damping factor
     
     int i;
@@ -157,4 +161,8 @@ int main (int argc, const char * argv[]) {
     // And the same goes for system memory, as usual.
     // Finally, release your queue just as you would any GCD queue. // 11
     dispatch_release(queue);
+    
+    t = clock() - t;
+    double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds
+    printf("fun() took %f seconds to execute \n", time_taken);
 }
