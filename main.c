@@ -8,7 +8,7 @@
 // Hard-coded number of values to test, for convenience.
 
 int main (int argc, const char * argv[]) {
-    int k = 3; // number of iterations
+    int k = 4; // number of iterations
     float d = 0.85; // damping factor
     
     int i;
@@ -65,6 +65,7 @@ int main (int argc, const char * argv[]) {
     float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float initPR = 1 / (float)numNodes;
     float constPart = (1 - d) / numNodes;
+    printf("%f\n", constPart);
     for (int i = 0; i < numNodes; ++i) {
         oldpr[i] = (cl_float)initPR;
         newpr[i] = constPart;
@@ -117,8 +118,8 @@ int main (int argc, const char * argv[]) {
         // kernel, is a 'cl_float' from the application's perspective. // 8
         
         for (int i = 0; i < k - 1; ++i) {
-            gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
-            printf("%f\n", oldpr[1]);
+//            gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
+//            printf("%f\n", oldpr[1]);
             
             square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
             gcl_memcpy(gcl_oldpr, gcl_newpr, sizeof(cl_float) * numNodes);
@@ -136,9 +137,9 @@ int main (int argc, const char * argv[]) {
 //        gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
     
-//    for (int i = 0; i < numNodes; ++i) {
-//        printf("%f\n", newpr[i]);
-//    }
+    for (int i = 0; i < numNodes; ++i) {
+        printf("%f\n", newpr[i]);
+    }
     
     free(numOutLinks);
     free(inlinks);
