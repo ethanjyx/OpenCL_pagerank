@@ -8,7 +8,7 @@
 // Hard-coded number of values to test, for convenience.
 
 int main (int argc, const char * argv[]) {
-    int k = 1; // number of iterations
+    int k = 3; // number of iterations
     float d = 0.85; // damping factor
     
     int i;
@@ -116,10 +116,18 @@ int main (int argc, const char * argv[]) {
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
         
-        for (int i = 0; i < k; ++i) {
+        for (int i = 0; i < k - 1; ++i) {
+            gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
+            printf("%f\n", oldpr[1]);
+            
             square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
-//            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
+            gcl_memcpy(gcl_oldpr, gcl_newpr, sizeof(cl_float) * numNodes);
+            gcl_memcpy(gcl_newpr, newpr, sizeof(cl_float) * numNodes);
         }
+        
+        // kth iteration
+        square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
+        gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
         
         // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
@@ -127,6 +135,10 @@ int main (int argc, const char * argv[]) {
         // application's memory space. // 9
 //        gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
+    
+//    for (int i = 0; i < numNodes; ++i) {
+//        printf("%f\n", newpr[i]);
+//    }
     
     free(numOutLinks);
     free(inlinks);
