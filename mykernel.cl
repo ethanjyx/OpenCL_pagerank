@@ -27,9 +27,10 @@ kernel void square(
     int in = inlinks[i];
     int out = outlinks[i];
 //    newpr[out] = (*d) * oldpr[in] / numOutlinks[in];
-    float contribution = (*d) * oldpr[in] / numOutlinks[in];
-    if(contribution == 0)
-        printf("!!!\n");
+//    if(*d == 0)
+//        printf("!!!\n");
+    float contribution = 0.85 * oldpr[in] / numOutlinks[in];
+    
     AtomicAdd(&newpr[out], contribution);
 //    printf("%f\n", contribution);
 }

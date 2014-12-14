@@ -8,7 +8,7 @@
 // Hard-coded number of values to test, for convenience.
 
 int main (int argc, const char * argv[]) {
-    int k = 4; // number of iterations
+    int k = 1; // number of iterations
     float d = 0.85; // damping factor
     
     int i;
