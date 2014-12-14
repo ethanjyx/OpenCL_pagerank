@@ -102,8 +102,11 @@ int main (int argc, const char * argv[]) {
         // kernel parameters. Note that we case the 'void*' here to the
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
-        square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
-        // Getting data out of the device's memory space is also easy;
+        for (int i = 0; i < 2; ++i) {
+            square_kernel(&range,(cl_float*)mem_in, (cl_float*)mem_out);
+            gcl_memcpy(mem_in, mem_out, sizeof(cl_float) * NUM_VALUES);
+        }
+                // Getting data out of the device's memory space is also easy;
         // use gcl_memcpy. In this case, gcl_memcpy takes the output
         // computed by the kernel and copies it over to the
         // application's memory space. // 9
