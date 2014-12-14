@@ -1,15 +1,33 @@
-// Simple OpenCL kernel that squares an input array.
-// This code is stored in a file called mykernel.cl.
-// You can name your kernel file as you would name any other
-// file.  Use .cl as the file extension for all kernel
-// source files.
-// Kernel block.
+
+// atomic add float
+inline void AtomicAdd(volatile __global float *source, const float operand) {
+    union {
+        unsigned int intVal;
+        float floatVal;
+    } newVal;
+    union {
+        unsigned int intVal;
+        float floatVal;
+    } prevVal;
+    do {
+        prevVal.floatVal = *source;
+        newVal.floatVal = prevVal.floatVal + operand;
+    } while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
+}
+
 kernel void square(
-                   global float* input,
-                   global float* output)
+                   global int* inlinks,
+                   global int* outlinks,
+                   global int* numOutlinks,
+                   global float* oldpr,
+                   global float* newpr,
+                   global float* d)
 {
     size_t i = get_global_id(0);
-    output[i] = input[i] * input[i];
+    int in = inlinks[i];
+    int out = outlinks[i];
+    float contribution = (*d) * oldpr[in] / numOutlinks[in] + newpr[out];
+    AtomicAdd(&newpr[out], contribution);
 }
 // 1
 // 2
