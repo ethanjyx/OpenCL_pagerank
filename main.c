@@ -12,10 +12,19 @@
 int main (int argc, const char * argv[]) {
     clock_t t = clock();
     
-    int k = 1; // number of iterations
+    // First, try to obtain a dispatch queue that can send work to the
+    // GPU in our system. // 2
+    dispatch_queue_t queue =
+    gcl_create_dispatch_queue(CL_DEVICE_TYPE_GPU, NULL);
+    // In the event that our system does NOT have an OpenCL-compatible GPU,
+    // we can use the OpenCL CPU compute device instead.
+    if (queue == NULL) {
+        queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
+    }
+    
+    int k = 100; // number of iterations
     float d = 0.85; // damping factor
     
-    int i;
     FILE *data;
     data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
     if (!data) {
@@ -49,23 +58,6 @@ int main (int argc, const char * argv[]) {
 //    for (int i = 0; i < numEdges; ++i) {
 //        printf("%d %d\n", inlinks[i], outlinks[i]);
 //    }
-    
-    char name[128];
-    // First, try to obtain a dispatch queue that can send work to the
-    // GPU in our system. // 2
-    dispatch_queue_t queue =
-    gcl_create_dispatch_queue(CL_DEVICE_TYPE_GPU, NULL);
-    // In the event that our system does NOT have an OpenCL-compatible GPU,
-    // we can use the OpenCL CPU compute device instead.
-    if (queue == NULL) {
-        queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
-    }
-    // This is not required, but let's print out the name of the device
-    // we are using to do work. We could use the same function,
-    // clGetDeviceInfo, to obtain all manner of information about the device.
-    cl_device_id gpu = gcl_get_device_id_with_dispatch_queue(queue);
-    clGetDeviceInfo(gpu, CL_DEVICE_NAME, 128, name, NULL);
-    fprintf(stdout, "Created a dispatch queue using the %s\n", name);
     
     float* oldpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
@@ -155,7 +147,7 @@ int main (int argc, const char * argv[]) {
     });
     
     for (int i = 0; i < numNodes; ++i) {
-        printf("%f\n", newpr[i]);
+//        printf("%f\n", newpr[i]);
     }
     
     free(numOutLinks);

@@ -26,14 +26,6 @@ kernel void square(
     size_t i = get_global_id(0);
     int in = inlinks[i];
     int out = outlinks[i];
-//    newpr[out] = (*d) * oldpr[in] / numOutlinks[in];
-//    if(*d == 0)
-//        printf("!!!\n");
     float contribution = 0.85 * oldpr[in] / numOutlinks[in];
-    
-    AtomicAdd(&newpr[out], get_local_size (0));
-//    printf("%f\n", contribution);
+    AtomicAdd(&newpr[out], contribution);
 }
-// 1
-// 2
-// 3
