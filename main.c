@@ -10,7 +10,6 @@
 
 
 int main (int argc, const char * argv[]) {
-    clock_t t = clock();
     
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
@@ -22,7 +21,7 @@ int main (int argc, const char * argv[]) {
         queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
     }
     
-    int k = 100; // number of iterations
+    int k = 10; // number of iterations
     float d = 0.85; // damping factor
     
     FILE *data;
@@ -68,6 +67,8 @@ int main (int argc, const char * argv[]) {
         oldpr[i] = (cl_float)initPR;
         newpr[i] = constPart;
     }
+    
+    clock_t t = clock();
     
     void* gcl_oldpr = gcl_malloc(sizeof(cl_float) * numNodes, oldpr,
                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
@@ -169,5 +170,5 @@ int main (int argc, const char * argv[]) {
     
     t = clock() - t;
     double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds
-    printf("fun() took %f seconds to execute \n", time_taken);
+//    printf("%f\n", time_taken);
 }
