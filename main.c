@@ -12,7 +12,7 @@
 int main (int argc, const char * argv[]) {
     clock_t t = clock();
     
-    int k = 100; // number of iterations
+    int k = 1; // number of iterations
     float d = 0.85; // damping factor
     
     int i;
@@ -41,6 +41,8 @@ int main (int argc, const char * argv[]) {
         }
     }
     fclose(data);
+    
+    printf("%d %d", numNodes, numEdges);
     
 //  test reading is correct
 //    printf("%d\n", numOutLinks[6004]);
@@ -92,10 +94,12 @@ int main (int argc, const char * argv[]) {
         // Although we could pass NULL as the workgroup size, which would tell
         // OpenCL to pick the one it thinks is best, we can also ask
         // OpenCL for the suggested size, and pass it ourselves.
-//        size_t wgs;
-//        gcl_get_kernel_block_workgroup_info(square_kernel,
-//                                            CL_KERNEL_WORK_GROUP_SIZE,
-//                                            sizeof(wgs), &wgs, NULL);
+        size_t wgs;
+        gcl_get_kernel_block_workgroup_info(square_kernel,
+                                            CL_KERNEL_WORK_GROUP_SIZE,
+                                            sizeof(wgs), &wgs, NULL);
+        printf("work group size %d \n", (int)wgs);
+        
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
@@ -107,7 +111,7 @@ int main (int argc, const char * argv[]) {
             {numEdges, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {NULL, 0, 0} // The local size of each workgroup. This
+            {125, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -124,10 +128,19 @@ int main (int argc, const char * argv[]) {
         for (int i = 0; i < k - 1; ++i) {
 //            gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
 //            printf("%f\n", oldpr[1]);
-            
+            clock_t t1 = clock();
             square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
+            t1 = clock() - t1;
+            double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
+            printf("pagerank() took %f seconds to execute \n", time_taken);
+            
+            clock_t t2 = clock();
             gcl_memcpy(gcl_oldpr, gcl_newpr, sizeof(cl_float) * numNodes);
             gcl_memcpy(gcl_newpr, newpr, sizeof(cl_float) * numNodes);
+            
+            t2 = clock() - t2;
+            time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
+//            printf("copy took %f seconds to execute \n", time_taken);
         }
         
         // kth iteration

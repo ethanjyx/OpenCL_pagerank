@@ -31,7 +31,7 @@ kernel void square(
 //        printf("!!!\n");
     float contribution = 0.85 * oldpr[in] / numOutlinks[in];
     
-    AtomicAdd(&newpr[out], contribution);
+    AtomicAdd(&newpr[out], get_local_size (0));
 //    printf("%f\n", contribution);
 }
 // 1
