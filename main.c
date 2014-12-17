@@ -10,6 +10,31 @@
 
 
 int main (int argc, const char * argv[]) {
+    cl_platform_id platform_id = NULL;
+    cl_device_id device_id = NULL;
+    cl_uint ret_num_devices;
+    cl_uint ret_num_platforms;
+    cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
+    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_DEFAULT, 1,
+                         &device_id, &ret_num_devices);
+    
+    if (device_id == NULL) {
+        fprintf(stderr, "failed to get device id!");
+        return 1;
+    }
+    
+    cl_device_partition_property properties[4];
+    properties[0] = CL_DEVICE_PARTITION_BY_COUNTS;
+    properties[1] = 1; // Use only one compute unit
+    properties[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
+    properties[3] = 0; // End of the property list
+    
+    cl_device_id subdevice_id;
+    cl_int error = clCreateSubDevices(device_id, properties, 1, &subdevice_id, NULL);
+    if (error != CL_SUCCESS) {
+        fprintf(stderr, "failed to create sub device %d!\n", error);
+        return 1;
+    }
     
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
@@ -171,13 +196,13 @@ int main (int argc, const char * argv[]) {
             pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
             t1 = clock() - t1;
             double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
-            printf("pagerank() took %f seconds to execute \n", time_taken);
+//            printf("pagerank() took %f seconds to execute \n", time_taken);
             
             clock_t t2 = clock();
             exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
             t2 = clock() - t2;
             time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
-            printf("copy took %f seconds to execute \n", time_taken);
+//            printf("copy took %f seconds to execute \n", time_taken);
         }
         
         // kth iteration
@@ -200,6 +225,7 @@ int main (int argc, const char * argv[]) {
     free(outlinks);
     free(oldpr);
     free(newpr);
+    free(pointers);
     
     // Don't forget to free up the CL device's memory when you're done. // 10
     gcl_free(gcl_newpr);
@@ -207,6 +233,7 @@ int main (int argc, const char * argv[]) {
     gcl_free(gcl_inlinks);
     gcl_free(gcl_outlinks);
     gcl_free(gcl_numOutlinks);
+    gcl_free(gcl_pointers);
     
     // And the same goes for system memory, as usual.
     // Finally, release your queue just as you would any GCD queue. // 11
