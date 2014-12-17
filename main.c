@@ -15,7 +15,7 @@ int main (int argc, const char * argv[]) {
     cl_uint ret_num_devices;
     cl_uint ret_num_platforms;
     cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_DEFAULT, 1,
+    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1,
                          &device_id, &ret_num_devices);
     
     if (device_id == NULL) {
@@ -23,14 +23,33 @@ int main (int argc, const char * argv[]) {
         return 1;
     }
     
-    cl_device_partition_property properties[4];
-    properties[0] = CL_DEVICE_PARTITION_BY_COUNTS;
-    properties[1] = 1; // Use only one compute unit
-    properties[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
-    properties[3] = 0; // End of the property list
+    printf("%d devices returned \n", ret_num_devices);
+  
+    // Create sub-device properties: Equally with 4 compute units each:
+    cl_device_partition_property props[3];
+    props[0] = CL_DEVICE_PARTITION_EQUALLY;  // Equally
+    props[1] = 4;                            // 4 compute units per sub-device
+    props[2] = 0;                            // End of the property list
     
-    cl_device_id subdevice_id;
-    cl_int error = clCreateSubDevices(device_id, properties, 1, &subdevice_id, NULL);
+    cl_device_id subdevice_id[8];
+    cl_uint num_entries = 8;
+    
+    // Create the sub-devices:
+    
+    cl_int error = clCreateSubDevices(device_id, props, num_entries, subdevice_id, &ret_num_devices);
+    
+    // Create the context:
+    
+//    context = clCreateContext(cprops, 1, subdevice_id, NULL, NULL, &err);
+    
+//    const cl_device_partition_property properties[3] = {
+//        CL_DEVICE_PARTITION_BY_COUNTS,
+//        1, // Use only one compute unit
+//        CL_DEVICE_PARTITION_BY_COUNTS_LIST_END
+//    };
+//    
+//    cl_device_id subdevice_id;
+//    cl_int error = clCreateSubDevices(device_id, properties, 1, &subdevice_id, NULL);
     if (error != CL_SUCCESS) {
         fprintf(stderr, "failed to create sub device %d!\n", error);
         return 1;
