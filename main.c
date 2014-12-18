@@ -22,39 +22,13 @@ int main (int argc, const char * argv[]) {
         fprintf(stderr, "failed to get device id!");
         return 1;
     }
-  
-    // Create sub-device properties: Equally with 4 compute units each:
-    cl_device_partition_property props[5];
-    props[0] = CL_DEVICE_PARTITION_BY_COUNTS; // Equally
-    props[1] = 2;                             // 2 compute units
-    props[2] = 4;                             // 4 compute units
-    props[3] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END; // End Count list
-    props[4] = 0;                             // End of the property list
     
-    cl_device_id subdevice_id[2];
-    cl_uint num_entries = 2;
-    
-    // Create the sub-devices:
-    
-    cl_int error = clCreateSubDevices(device_id, props, num_entries, subdevice_id, &ret_num_devices);
-    
-    
-    // Create the context:
-    
-//    context = clCreateContext(cprops, 1, subdevice_id, NULL, NULL, &err);
-    
-//    const cl_device_partition_property properties[3] = {
-//        CL_DEVICE_PARTITION_BY_COUNTS,
-//        1, // Use only one compute unit
-//        CL_DEVICE_PARTITION_BY_COUNTS_LIST_END
-//    };
-//    
-//    cl_device_id subdevice_id;
-//    cl_int error = clCreateSubDevices(device_id, properties, 1, &subdevice_id, NULL);
-//    if (error != CL_SUCCESS) {
-//        fprintf(stderr, "failed to create sub device %d!\n", error);
-//        return 1;
-//    }
+    cl_uint max_units;
+    int error = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(max_units), &max_units, NULL);
+    if (error != CL_SUCCESS) {
+        printf("cannot get device info %d\n", error);
+    }
+    printf("number of GPU cores available: %d\n", max_units);
     
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
