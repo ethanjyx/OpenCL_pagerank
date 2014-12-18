@@ -20,12 +20,22 @@ kernel void square(
                    global int* outlinks,
                    global int* numOutlinks,
                    global float* oldpr,
-                   global float* newpr,
-                   global float* d)
+                   global float* newpr)
 {
     size_t i = get_global_id(0);
     int in = inlinks[i];
     int out = outlinks[i];
-    float contribution = 0.85 * oldpr[in] / numOutlinks[in];
-    AtomicAdd(&newpr[out], contribution);
+    AtomicAdd(&newpr[out], oldpr[in]);
+}
+
+kernel void exchange(global float* oldpr,
+                       global float* newpr,
+                       global int* numOutlinks)
+{
+    size_t i = get_global_id(0);
+    if (numOutlinks[i])
+        oldpr[i] = 0.85 * newpr[i] / numOutlinks[i];
+    else
+        oldpr[i] = 0;
+    newpr[i] = 0.000025;
 }

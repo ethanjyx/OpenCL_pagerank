@@ -50,7 +50,7 @@ int main (int argc, const char * argv[]) {
     }
     fclose(data);
     
-    printf("%d %d", numNodes, numEdges);
+    printf("%d %d \n", numNodes, numEdges);
     
 //  test reading is correct
 //    printf("%d\n", numOutLinks[6004]);
@@ -58,11 +58,16 @@ int main (int argc, const char * argv[]) {
 //        printf("%d %d\n", inlinks[i], outlinks[i]);
 //    }
     
+    // validate numOutLinks
+//    for (int i = 0; i < numNodes; ++i) {
+//        printf("%d\n", numOutLinks[i]);
+//    }
+    
     float* oldpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float initPR = 1 / (float)numNodes;
     float constPart = (1 - d) / numNodes;
-    printf("%f\n", constPart);
+    printf("const part is %f\n", constPart);
     for (int i = 0; i < numNodes; ++i) {
         oldpr[i] = (cl_float)initPR;
         newpr[i] = constPart;
@@ -70,10 +75,11 @@ int main (int argc, const char * argv[]) {
     
     clock_t t = clock();
     
-    void* gcl_oldpr = gcl_malloc(sizeof(cl_float) * numNodes, oldpr,
+    void* gcl_oldpr = gcl_malloc(sizeof(cl_float) * numNodes, NULL,
+                                 CL_MEM_READ_ONLY);
+    void* gcl_newpr = gcl_malloc(sizeof(cl_float) * numNodes, oldpr,
                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    void* gcl_newpr = gcl_malloc(sizeof(cl_float) * numNodes, newpr,
-                                 CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    
     void* gcl_inlinks = gcl_malloc(sizeof(cl_int) * numEdges, inlinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     void* gcl_outlinks = gcl_malloc(sizeof(cl_int) * numEdges, outlinks,
@@ -96,7 +102,7 @@ int main (int argc, const char * argv[]) {
         // The N-Dimensional Range over which we'd like to execute our
         // kernel. In this case, we're operating on a 1D buffer, so
         // it makes sense that the range is 1D.
-        cl_ndrange range = { // 6
+        cl_ndrange range1 = { // 6
             1, // The number of dimensions to use.
             {0, 0, 0}, // The offset in each dimension. To specify
             // that all the data is processed, this is 0
@@ -104,7 +110,7 @@ int main (int argc, const char * argv[]) {
             {numEdges, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
-            {125, 0, 0} // The local size of each workgroup. This
+            {NULL, 0, 0} // The local size of each workgroup. This
             // determines the number of work items per
             // workgroup. It indirectly affects the
             // number of workgroups, since the global
@@ -112,32 +118,53 @@ int main (int argc, const char * argv[]) {
             // workgroups. In this test case, there are
             // NUM_VALUE / wgs workgroups.
         };
+        
+        cl_ndrange range2 = { // 6
+            1, // The number of dimensions to use.
+            {0, 0, 0}, // The offset in each dimension. To specify
+            // that all the data is processed, this is 0
+            // in the test case. // 7
+            {numNodes, 0, 0}, // The global range—this is how many items
+            // IN TOTAL in each dimension you want to
+            // process.
+            {NULL, 0, 0} // The local size of each workgroup. This
+            // determines the number of work items per
+            // workgroup. It indirectly affects the
+            // number of workgroups, since the global
+            // size / local size yields the number of
+            // workgroups. In this test case, there are
+            // NUM_VALUE / wgs workgroups.
+        };
+        
         // Calling the kernel is easy; simply call it like a function,
         // passing the ndrange as the first parameter, followed by the expected
         // kernel parameters. Note that we case the 'void*' here to the
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
+
+        exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
+        gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
+        gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
+        for (int i = 0; i < numNodes; ++i) {
+//            printf("%f\n", newpr[i]);
+        }
         
         for (int i = 0; i < k - 1; ++i) {
-//            gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
-//            printf("%f\n", oldpr[1]);
             clock_t t1 = clock();
-            square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
+            square_kernel(&range1,gcl_inlinks, gcl_outlinks, gcl_numOutlinks, gcl_oldpr, gcl_newpr);
             t1 = clock() - t1;
             double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
             printf("pagerank() took %f seconds to execute \n", time_taken);
             
             clock_t t2 = clock();
-            gcl_memcpy(gcl_oldpr, gcl_newpr, sizeof(cl_float) * numNodes);
-            gcl_memcpy(gcl_newpr, newpr, sizeof(cl_float) * numNodes);
-            
+            exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
             t2 = clock() - t2;
             time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
-//            printf("copy took %f seconds to execute \n", time_taken);
+            printf("copy took %f seconds to execute \n", time_taken);
         }
         
         // kth iteration
-        square_kernel(&range,(cl_int*)gcl_inlinks, (cl_int*)gcl_outlinks, (cl_int*)gcl_numOutlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_float*)&d);
+        square_kernel(&range1, gcl_inlinks, gcl_outlinks, gcl_numOutlinks, gcl_oldpr, gcl_newpr);
         gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
         
         // Getting data out of the device's memory space is also easy;
@@ -148,7 +175,7 @@ int main (int argc, const char * argv[]) {
     });
     
     for (int i = 0; i < numNodes; ++i) {
-//        printf("%f\n", newpr[i]);
+        printf("%f\n", newpr[i]);
     }
     
     free(numOutLinks);
@@ -170,5 +197,5 @@ int main (int argc, const char * argv[]) {
     
     t = clock() - t;
     double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds
-//    printf("%f\n", time_taken);
+    printf("overall time %f\n", time_taken);
 }
