@@ -22,21 +22,22 @@ int main (int argc, const char * argv[]) {
         fprintf(stderr, "failed to get device id!");
         return 1;
     }
-    
-    printf("%d devices returned \n", ret_num_devices);
   
     // Create sub-device properties: Equally with 4 compute units each:
-    cl_device_partition_property props[3];
-    props[0] = CL_DEVICE_PARTITION_EQUALLY;  // Equally
-    props[1] = 4;                            // 4 compute units per sub-device
-    props[2] = 0;                            // End of the property list
+    cl_device_partition_property props[5];
+    props[0] = CL_DEVICE_PARTITION_BY_COUNTS; // Equally
+    props[1] = 2;                             // 2 compute units
+    props[2] = 4;                             // 4 compute units
+    props[3] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END; // End Count list
+    props[4] = 0;                             // End of the property list
     
-    cl_device_id subdevice_id[8];
-    cl_uint num_entries = 8;
+    cl_device_id subdevice_id[2];
+    cl_uint num_entries = 2;
     
     // Create the sub-devices:
     
     cl_int error = clCreateSubDevices(device_id, props, num_entries, subdevice_id, &ret_num_devices);
+    
     
     // Create the context:
     
@@ -50,10 +51,10 @@ int main (int argc, const char * argv[]) {
 //    
 //    cl_device_id subdevice_id;
 //    cl_int error = clCreateSubDevices(device_id, properties, 1, &subdevice_id, NULL);
-    if (error != CL_SUCCESS) {
-        fprintf(stderr, "failed to create sub device %d!\n", error);
-        return 1;
-    }
+//    if (error != CL_SUCCESS) {
+//        fprintf(stderr, "failed to create sub device %d!\n", error);
+//        return 1;
+//    }
     
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
