@@ -15,19 +15,17 @@ inline void AtomicAdd(volatile __global float *source, const float operand) {
     } while (atomic_cmpxchg((volatile __global unsigned int *)source, prevVal.intVal, newVal.intVal) != prevVal.intVal);
 }
 
-kernel void pagerank(global int* pointers,
+kernel void square(
                    global int* inlinks,
+                   global int* outlinks,
+                   global int* numOutlinks,
                    global float* oldpr,
                    global float* newpr)
 {
     size_t i = get_global_id(0);
-    int index = 2 * i;
-    int start = pointers[index];
-    int end = pointers[index + 1];
-//    newpr[i] += start;
-    for(int j = start; j < end; ++j) {
-        newpr[i] += oldpr[inlinks[j]];
-    }
+    int in = inlinks[i];
+    int out = outlinks[i];
+    AtomicAdd(&newpr[out], oldpr[in]);
 }
 
 kernel void exchange(global float* oldpr,
