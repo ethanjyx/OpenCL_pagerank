@@ -167,17 +167,17 @@ int main (int argc, const char * argv[]) {
         }
         
         for (int i = 0; i < k - 1; ++i) {
-            clock_t t1 = clock();
+//            clock_t t1 = clock();
             pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
-            t1 = clock() - t1;
-            double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
-            printf("pagerank() took %f seconds to execute \n", time_taken);
+//            t1 = clock() - t1;
+//            double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
+//            printf("pagerank() took %f seconds to execute \n", time_taken);
             
-            clock_t t2 = clock();
+//            clock_t t2 = clock();
             exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
-            t2 = clock() - t2;
-            time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
-            printf("copy took %f seconds to execute \n", time_taken);
+//            t2 = clock() - t2;
+//            time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
+//            printf("copy took %f seconds to execute \n", time_taken);
         }
         
         // kth iteration
@@ -191,9 +191,9 @@ int main (int argc, const char * argv[]) {
 //        gcl_memcpy(test_out, mem_out, sizeof(cl_float) * NUM_VALUES);
     });
     
-    for (int i = 0; i < numNodes; ++i) {
-        printf("node %d %f\n", i, newpr[i]);
-    }
+//    for (int i = 0; i < numNodes; ++i) {
+//        printf("node %d %f\n", i, newpr[i]);
+//    }
     
     free(numOutLinks);
     free(inlinks);
