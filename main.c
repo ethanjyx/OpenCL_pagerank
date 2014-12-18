@@ -59,7 +59,7 @@ int main (int argc, const char * argv[]) {
         queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
     }
     
-    int k = 1; // number of iterations
+    int k = 10; // number of iterations
     float d = 0.85; // damping factor
     
     int curOffset = 0;
@@ -189,6 +189,13 @@ int main (int argc, const char * argv[]) {
 //    for (int i = 0; i < numNodes; ++i) {
 //        printf("node %d %f\n", i, newpr[i]);
 //    }
+    
+    printf("node %e\n", newpr[0]);
+    printf("node %e\n", newpr[1]);
+    printf("node %e\n", newpr[2]);
+    printf("node %e\n", newpr[3]);
+    printf("node %e\n", newpr[4]);
+    
     
     free(numOutLinks);
     free(inlinks);
