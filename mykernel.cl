@@ -39,5 +39,5 @@ kernel void exchange(global float* oldpr,
         oldpr[i] = 0.85 * newpr[i] / numOutlinks[i];
     else
         oldpr[i] = 0;
-    newpr[i] = 0.000025;
+    newpr[i] = 1 / 5716808;
 }
