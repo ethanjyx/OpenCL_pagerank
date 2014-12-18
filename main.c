@@ -8,8 +8,46 @@
 // Hard-coded number of values to test, for convenience.
 #include <time.h>
 
+#include <vector>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+
+using namespace std;
+
 
 int main (int argc, const char * argv[]) {
+    int numNodes = 5716808;
+    vector<vector<int > >  adjM(numNodes);
+    
+    ifstream infile("/Users/yixing/Desktop/links-simple-sorted.txt", std::ifstream::in);
+    int numEdges = 0;
+    int source,destination,destination2;
+    string des,STRING;
+    //int norm_col_factor[matrix_size];
+    
+    int* numOutLinks = (int*)malloc(sizeof(cl_int) * numNodes);
+    
+    while(!infile.eof()) // To get you all the lines.
+    {
+        getline(infile,STRING); // Saves the line in STRING.
+        stringstream stream(STRING);
+        stream >> source;
+        stream >> des;
+        destination2 = -1;
+        
+        while(stream){
+            stream>>destination;
+            if (destination != destination2) {
+                destination2 = destination;
+                numOutLinks[source-1]++;
+                adjM[destination-1].push_back(source-1);
+                //cout<<adjM[0][0] << " "<< source << ' ' << destination <<endl;
+                numEdges++;
+            }
+        }
+    }
     
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
@@ -21,62 +59,21 @@ int main (int argc, const char * argv[]) {
         queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
     }
     
-    int k = 10000; // number of iterations
+    int k = 1; // number of iterations
     float d = 0.85; // damping factor
-    
-    FILE *data;
-    data = fopen("/Users/yixing/Desktop/hollins.dat", "r");
-    if (!data) {
-        fprintf(stderr, "cannot open datafile\n");
-        return 1;
-    }
-    
-    int numNodes, numEdges;
-    fscanf(data, "%d %d", &numNodes, &numEdges);
-    
-    int* numOutLinks = (int*)malloc(sizeof(cl_int) * numNodes);
-    int* numInLinks = (int*)malloc(sizeof(cl_int) * numNodes);
-    
-    int* inlinks = (int*)malloc(sizeof(cl_int) * numEdges);
-    int* outlinks = (int*)malloc(sizeof(cl_int) * numEdges);
-    int in, out;
-    for (int i = 0; i < numEdges; ++i) {
-        if(fscanf(data, "%d %d", &in, &out) != EOF) {
-            // in and out starts from 1
-            // change to let them start from 0
-            --in; --out;
-            inlinks[i] = (cl_int)in;
-            outlinks[i] = (cl_int)out;
-            ++numOutLinks[in];
-            ++numInLinks[out];
-        }
-    }
-    fclose(data);
     
     int curOffset = 0;
     int* pointers = (int*)malloc(sizeof(cl_int) * numNodes * 2);
+    int* inlinks = (int*)malloc(sizeof(cl_int) * numEdges);
     for (int i = 0; i < numNodes; ++i) {
         pointers[2 * i] = curOffset;
-        curOffset += numInLinks[i];
+        for (int j = 0; j < adjM[i].size(); ++j) {
+            inlinks[curOffset + j] = adjM[i][j];
+        }
+        curOffset += adjM[i].size();
         pointers[2 * i + 1] = curOffset;
     }
     
-    for (int i = 0; i < numNodes; ++i) {
-//        printf("%d %d\n", pointers[2 * i], pointers[2 * i + 1]);
-    }
-    
-    printf("numNodes %d numEdges %d \n", numNodes, numEdges);
-    
-//  test reading is correct
-//    printf("%d\n", numOutLinks[6004]);
-//    for (int i = 0; i < numEdges; ++i) {
-//        printf("%d %d\n", inlinks[i], outlinks[i]);
-//    }
-    
-    // validate numOutLinks
-//    for (int i = 0; i < numNodes; ++i) {
-//        printf("%d\n", numOutLinks[i]);
-//    }
     
     float* oldpr = (float*)malloc(sizeof(cl_float) * numNodes);
     float* newpr = (float*)malloc(sizeof(cl_float) * numNodes);
@@ -96,8 +93,6 @@ int main (int argc, const char * argv[]) {
                                  CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     
     void* gcl_inlinks = gcl_malloc(sizeof(cl_int) * numEdges, inlinks,
-                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    void* gcl_outlinks = gcl_malloc(sizeof(cl_int) * numEdges, outlinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     void* gcl_numOutlinks = gcl_malloc(sizeof(cl_int) * numNodes, numOutLinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
@@ -124,7 +119,7 @@ int main (int argc, const char * argv[]) {
             {0, 0, 0}, // The offset in each dimension. To specify
             // that all the data is processed, this is 0
             // in the test case. // 7
-            {numNodes, 0, 0}, // The global range—this is how many items
+            {static_cast<size_t>(numNodes), 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
             {NULL, 0, 0} // The local size of each workgroup. This
@@ -141,7 +136,7 @@ int main (int argc, const char * argv[]) {
             {0, 0, 0}, // The offset in each dimension. To specify
             // that all the data is processed, this is 0
             // in the test case. // 7
-            {numNodes, 0, 0}, // The global range—this is how many items
+            {static_cast<size_t>(numNodes), 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
             {NULL, 0, 0} // The local size of each workgroup. This
@@ -159,7 +154,7 @@ int main (int argc, const char * argv[]) {
         // expected OpenCL types. Remember, a 'float' in the
         // kernel, is a 'cl_float' from the application's perspective. // 8
 
-        exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
+        exchange_kernel(&range2, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_int*)gcl_numOutlinks);
         gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
         gcl_memcpy(oldpr, gcl_oldpr, sizeof(cl_float) * numNodes);
         for (int i = 0; i < numNodes; ++i) {
@@ -168,20 +163,20 @@ int main (int argc, const char * argv[]) {
         
         for (int i = 0; i < k - 1; ++i) {
 //            clock_t t1 = clock();
-            pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
+            pagerank_kernel(&range1, (cl_int*)gcl_pointers, (cl_int*)gcl_inlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr);
 //            t1 = clock() - t1;
 //            double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
 //            printf("pagerank() took %f seconds to execute \n", time_taken);
             
 //            clock_t t2 = clock();
-            exchange_kernel(&range2, gcl_oldpr, gcl_newpr, gcl_numOutlinks);
+            exchange_kernel(&range2, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr, (cl_int*)gcl_numOutlinks);
 //            t2 = clock() - t2;
 //            time_taken = ((double)t2)/CLOCKS_PER_SEC; // in seconds
 //            printf("copy took %f seconds to execute \n", time_taken);
         }
         
         // kth iteration
-        pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
+        pagerank_kernel(&range1, (cl_int*)gcl_pointers, (cl_int*)gcl_inlinks, (cl_float*)gcl_oldpr, (cl_float*)gcl_newpr);
         gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
         
         // Getting data out of the device's memory space is also easy;
@@ -197,7 +192,6 @@ int main (int argc, const char * argv[]) {
     
     free(numOutLinks);
     free(inlinks);
-    free(outlinks);
     free(oldpr);
     free(newpr);
     
@@ -205,7 +199,6 @@ int main (int argc, const char * argv[]) {
     gcl_free(gcl_newpr);
     gcl_free(gcl_oldpr);
     gcl_free(gcl_inlinks);
-    gcl_free(gcl_outlinks);
     gcl_free(gcl_numOutlinks);
     
     // And the same goes for system memory, as usual.
