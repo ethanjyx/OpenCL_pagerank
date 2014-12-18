@@ -21,7 +21,7 @@ int main (int argc, const char * argv[]) {
         queue = gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
     }
     
-    int k = 10; // number of iterations
+    int k = 10000; // number of iterations
     float d = 0.85; // damping factor
     
     FILE *data;
@@ -35,6 +35,8 @@ int main (int argc, const char * argv[]) {
     fscanf(data, "%d %d", &numNodes, &numEdges);
     
     int* numOutLinks = (int*)malloc(sizeof(cl_int) * numNodes);
+    int* numInLinks = (int*)malloc(sizeof(cl_int) * numNodes);
+    
     int* inlinks = (int*)malloc(sizeof(cl_int) * numEdges);
     int* outlinks = (int*)malloc(sizeof(cl_int) * numEdges);
     int in, out;
@@ -46,11 +48,24 @@ int main (int argc, const char * argv[]) {
             inlinks[i] = (cl_int)in;
             outlinks[i] = (cl_int)out;
             ++numOutLinks[in];
+            ++numInLinks[out];
         }
     }
     fclose(data);
     
-    printf("%d %d \n", numNodes, numEdges);
+    int curOffset = 0;
+    int* pointers = (int*)malloc(sizeof(cl_int) * numNodes * 2);
+    for (int i = 0; i < numNodes; ++i) {
+        pointers[2 * i] = curOffset;
+        curOffset += numInLinks[i];
+        pointers[2 * i + 1] = curOffset;
+    }
+    
+    for (int i = 0; i < numNodes; ++i) {
+//        printf("%d %d\n", pointers[2 * i], pointers[2 * i + 1]);
+    }
+    
+    printf("numNodes %d numEdges %d \n", numNodes, numEdges);
     
 //  test reading is correct
 //    printf("%d\n", numOutLinks[6004]);
@@ -87,6 +102,8 @@ int main (int argc, const char * argv[]) {
     void* gcl_numOutlinks = gcl_malloc(sizeof(cl_int) * numNodes, numOutLinks,
                                    CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
     
+    void* gcl_pointers = gcl_malloc(sizeof(cl_int) * 2 * numNodes, pointers, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    
     // Dispatch the kernel block using one of the dispatch_ commands and the
     // queue created earlier. // 5
     dispatch_sync(queue, ^{
@@ -94,7 +111,7 @@ int main (int argc, const char * argv[]) {
         // OpenCL to pick the one it thinks is best, we can also ask
         // OpenCL for the suggested size, and pass it ourselves.
         size_t wgs;
-        gcl_get_kernel_block_workgroup_info(square_kernel,
+        gcl_get_kernel_block_workgroup_info(pagerank_kernel,
                                             CL_KERNEL_WORK_GROUP_SIZE,
                                             sizeof(wgs), &wgs, NULL);
         printf("work group size %d \n", (int)wgs);
@@ -107,7 +124,7 @@ int main (int argc, const char * argv[]) {
             {0, 0, 0}, // The offset in each dimension. To specify
             // that all the data is processed, this is 0
             // in the test case. // 7
-            {numEdges, 0, 0}, // The global range—this is how many items
+            {numNodes, 0, 0}, // The global range—this is how many items
             // IN TOTAL in each dimension you want to
             // process.
             {NULL, 0, 0} // The local size of each workgroup. This
@@ -151,7 +168,7 @@ int main (int argc, const char * argv[]) {
         
         for (int i = 0; i < k - 1; ++i) {
             clock_t t1 = clock();
-            square_kernel(&range1,gcl_inlinks, gcl_outlinks, gcl_numOutlinks, gcl_oldpr, gcl_newpr);
+            pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
             t1 = clock() - t1;
             double time_taken = ((double)t1)/CLOCKS_PER_SEC; // in seconds
             printf("pagerank() took %f seconds to execute \n", time_taken);
@@ -164,7 +181,7 @@ int main (int argc, const char * argv[]) {
         }
         
         // kth iteration
-        square_kernel(&range1, gcl_inlinks, gcl_outlinks, gcl_numOutlinks, gcl_oldpr, gcl_newpr);
+        pagerank_kernel(&range1, gcl_pointers, gcl_inlinks, gcl_oldpr, gcl_newpr);
         gcl_memcpy(newpr, gcl_newpr, sizeof(cl_float) * numNodes);
         
         // Getting data out of the device's memory space is also easy;
@@ -175,7 +192,7 @@ int main (int argc, const char * argv[]) {
     });
     
     for (int i = 0; i < numNodes; ++i) {
-        printf("%f\n", newpr[i]);
+        printf("node %d %f\n", i, newpr[i]);
     }
     
     free(numOutLinks);
