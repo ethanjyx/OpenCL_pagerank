@@ -18,7 +18,7 @@ using namespace std;
 
 
 int main (int argc, const char * argv[]) {
-    int numNodes = 5716808;
+    int numNodes = 1000000;
     vector<vector<int > >  adjM(numNodes);
     
     ifstream infile("/Users/yixing/Desktop/links-simple-sorted.txt", std::ifstream::in);
@@ -36,12 +36,18 @@ int main (int argc, const char * argv[]) {
         stream >> source;
         stream >> des;
         destination2 = -1;
+        if (source > numNodes) {
+            break;
+        }
         
         while(stream){
             stream>>destination;
             if (destination != destination2) {
                 destination2 = destination;
                 numOutLinks[source-1]++;
+                if (destination > numNodes) {
+                    continue;
+                }
                 adjM[destination-1].push_back(source-1);
                 //cout<<adjM[0][0] << " "<< source << ' ' << destination <<endl;
                 numEdges++;
@@ -52,7 +58,7 @@ int main (int argc, const char * argv[]) {
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
     dispatch_queue_t queue =
-    gcl_create_dispatch_queue(CL_DEVICE_TYPE_GPU, NULL);
+    gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
     // In the event that our system does NOT have an OpenCL-compatible GPU,
     // we can use the OpenCL CPU compute device instead.
     if (queue == NULL) {
