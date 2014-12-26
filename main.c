@@ -18,7 +18,7 @@ using namespace std;
 
 
 int main (int argc, const char * argv[]) {
-    int numNodes = 1000000;
+    int numNodes = 100000;
     vector<vector<int > >  adjM(numNodes);
     
     ifstream infile("/Users/yixing/Desktop/links-simple-sorted.txt", std::ifstream::in);
@@ -58,7 +58,7 @@ int main (int argc, const char * argv[]) {
     // First, try to obtain a dispatch queue that can send work to the
     // GPU in our system. // 2
     dispatch_queue_t queue =
-    gcl_create_dispatch_queue(CL_DEVICE_TYPE_CPU, NULL);
+    gcl_create_dispatch_queue(CL_DEVICE_TYPE_GPU, NULL);
     // In the event that our system does NOT have an OpenCL-compatible GPU,
     // we can use the OpenCL CPU compute device instead.
     if (queue == NULL) {
